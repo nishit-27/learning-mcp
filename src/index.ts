@@ -22,7 +22,13 @@ server.tool("subtract",
     content: [{ type: "text", text: String(a - b) }]
   })
 );
-server.tool("add_reminder",
+server.tool("get-real-time","we will use this tool to get real time. whenever if there is any need to get information about real time and date we will use this tool. this tool will be help full in getting today's date and time. this will become help full to calculate other time", { }, async () => {
+  const response = getUserTime()
+  return({content: [{ type: "text", text: String(response) }]}) 
+});
+server.tool("add_reminder",`AppleScript expects very specific date formats, like:
+"Sunday, April 27, 2025 at 10:00:00 AM" or "4/27/2025 10:00 AM"
+AppleScript is very sensitive with dates!. so make sure you are using right format so our internal appleScript doen't break. use one of the above formate only for due_date.`,
   
   {title: z.string(),notes: z.string().optional(), due_date: z.string().optional()},
 
@@ -60,6 +66,7 @@ interface AddReminderOutput {
 }
 
 
+
 export async function addReminder(input: AddReminderInput): Promise<AddReminderOutput> {
   const title = input.title.replace(/"/g, '\\"');
   const notes = input.notes ? input.notes.replace(/"/g, '\\"') : "";
@@ -70,21 +77,27 @@ export async function addReminder(input: AddReminderInput): Promise<AddReminderO
   }
 
   let dueDateScript = "";
+
   if (input.due_date) {
     const date = new Date(input.due_date);
     if (!isNaN(date.getTime())) {
-      const day = date.getDate();
-      const month = date.getMonth() + 1; // JS: 0-11, AppleScript: 1-12
       const year = date.getFullYear();
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"];
+      const monthName = monthNames[date.getMonth()];
+      const day = date.getDate();
       const hours = date.getHours();
       const minutes = date.getMinutes();
+      const seconds = date.getSeconds();
 
       dueDateScript = `
         set dueDate to current date
         set year of dueDate to ${year}
-        set month of dueDate to ${month}
+        set month of dueDate to ${monthName}
         set day of dueDate to ${day}
-        set time of dueDate to ${(hours * 3600) + (minutes * 60)}
+        set hours of dueDate to ${hours}
+        set minutes of dueDate to ${minutes}
+        set seconds of dueDate to ${seconds}
         set due date of newReminder to dueDate
       `;
     }
@@ -106,69 +119,19 @@ export async function addReminder(input: AddReminderInput): Promise<AddReminderO
   }
 }
 
-// export async function addReminder(input: AddReminderInput): Promise<AddReminderOutput> {
-//   const title = input.title.replace(/"/g, '\\"');
-//   const notes = input.notes ? input.notes.replace(/"/g, '\\"') : "";
-  
-//   let properties = `name: "${title}"`;
-  
-//   if (notes) {
-//     properties += `, body: "${notes}"`;
-//   }
+function getUserTime() {
+  const userDate = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZoneName: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  };
 
-//   if (input.due_date) {
-//     const date = new Date(input.due_date);
-//     if (!isNaN(date.getTime())) {
-//       const day = date.getDate();
-//       const month = date.getMonth() + 1; // AppleScript months are 1–12
-//       const year = date.getFullYear();
-//       const hours = date.getHours();
-//       const minutes = date.getMinutes();
+  const formattedTime = userDate.toLocaleString(undefined, options);
+  return formattedTime;
+}
 
-//       properties += `,
-//         due date: (do shell script "osascript -e 'set d to current date
-//         set year of d to ${year}
-//         set month of d to ${month}
-//         set day of d to ${day}
-//         set time of d to ${(hours * 3600) + (minutes * 60)}
-//         return d as string'") as date
-//       `;
-//     }
-//   }
-//   console.log(properties)
-
-//   const script = `
-//     tell application "Reminders"
-//       set newReminder to make new reminder in list "Reminders" with properties {${properties}}
-//     end tell
-//   `;
-
-//   try {
-//     execSync(`osascript -e '${script}'`);
-//     return { message: "Reminder added successfully." };
-//   } catch (error) {
-//     console.error(error);
-//     return { message: "Failed to add reminder." };
-//   }
-// }
-// export async function addReminder(input: AddReminderInput): Promise<AddReminderOutput> {
-//   const title = input.title.replace(/"/g, '\\"');
-//   const notes = input.notes ? input.notes.replace(/"/g, '\\"') : "";
-//   const dueDate = input.due_date ? input.due_date : "";
-
-//   let script = `
-//     tell application "Reminders"
-//       set newReminder to make new reminder in list "Reminders"
-//       set name of newReminder to "${title}"
-//       ${notes ? `set body of newReminder to "${notes}"` : ""}
-//       ${dueDate ? `set due date of newReminder to date "${dueDate}"` : ""}
-//     end tell
-//   `;
-
-//   try {
-//     execSync(`osascript -e '${script}'`);
-//     return { message: "Reminder added successfully." };
-//   } catch (error) {
-//     return { message: "Failed to add reminder." };
-//   }
-// }
