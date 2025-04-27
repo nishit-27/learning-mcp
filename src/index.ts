@@ -26,8 +26,7 @@ server.tool("get-real-time","we will use this tool to get real time. whenever if
   const response = getUserTime()
   return({content: [{ type: "text", text: String(response) }]}) 
 });
-server.tool("add_reminder",`AppleScript expects very specific date formats, like:
-"Sunday, April 27, 2025 at 10:00:00 AM" or "4/27/2025 10:00 AM"
+server.tool("add_reminder",`AppleScript expects very specific date formats, like:"4/27/2025 10:00 AM"
 AppleScript is very sensitive with dates!. so make sure you are using right format so our internal appleScript doen't break. use one of the above formate only for due_date.`,
   
   {title: z.string(),notes: z.string().optional(), due_date: z.string().optional()},
